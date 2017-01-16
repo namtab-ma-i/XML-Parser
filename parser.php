@@ -1,25 +1,35 @@
 <?php
+
+include_once "mysql.php";
+
 $ini_array = parse_ini_file("config.ini");
 
 $url = $ini_array['url'].'?u='.$ini_array['username'].'&p='.$ini_array['password'];
 
 $xml = simplexml_load_file($url) or die("Error loading xml!");
 
-//TODO: Getting last article id must be here
-//Hardcoded last id (just for testing)
-$last_id = 33714;
+$mysql->select("articleID", articles, "", "", "", "id", "DESC", "0", "1");
+
+$last_id = $mysql->rows[0][0];
 
 foreach ($xml as $article) {
     $id = $article->articleId;
     if($last_id >= $id)
-        break;
+        continue;
     else {
-        //TODO: Save article to database
+        $todayh = getdate();
+        $d = $todayh['mday'];
+        $m = $todayh['mon'];
+        $y = $todayh['year'];
+        $img = $id . '.jpg';
+        $mysql->insert(articles, "publishdate, period, articleID, title, descr, text, pict",
+            "'$y-$m-$d', '$article->periode', '$id', '".addslashes($article->headline)."', '".addslashes($article->subheadline)."',
+            '".addslashes($article->text)."', '$img'");
 
-        //Following code requires allow_url_fopen set to true
-        //TODO: Change image path
-        copy($article->image, '\uploads' . '/' . $id . '.jpg');
-
-        echo $id.' ';
+        copy($article->image, $_SERVER['DOCUMENT_ROOT'] . '/picts' . '/' . $img);
+        echo "Processing article with id " . $id . " <br>";
     }
 }
+echo "All done!";
+
+
